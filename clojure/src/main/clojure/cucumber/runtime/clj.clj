@@ -67,6 +67,7 @@
                                     (:file location))))
                           (getPattern [_]
                             (str pattern)))))
+
   ;; register the before hooks
   (doseq [{:keys [tag-expression hook-fun location]} @before-hooks]
     (let [tp (TagPredicate. tag-expression)]
@@ -76,12 +77,18 @@
          HookDefinition
          (getLocation [_ detail?]
            (location-str location))
-         (execute [hd scenario-result]
-           (hook-fun))
+         (execute [hd scenario]
+           (hook-fun world {:status (.getStatus scenario)
+                            :failed? (.isFailed scenario)
+                            :name (.getName scenario)
+                            :id (.getId scenario)
+                            :uri (.getUri scenario)
+                            :lines (.getLines scenario)}))
          (matches [hd tags]
            (.apply tp tags))
          (getOrder [hd] 0)
          (isScenarioScoped [hd] false)))))
+
   ;; register the after hooks
   (doseq [{:keys [tag-expression hook-fun location]} @after-hooks]
     (let [tp (TagPredicate. tag-expression)
@@ -96,9 +103,12 @@
          (getLocation [_ detail?]
            (location-str location))
          (execute [hd scenario-result]
-           (if (zero? max-parameter-count)
-             (hook-fun)
-             (hook-fun scenario-result)))
+           (hook-fun world {:status (.getStatus scenario-result)
+                            :failed? (.isFailed scenario-result)
+                            :name (.getName scenario-result)
+                            :id (.getId scenario-result)
+                            :uri (.getUri scenario-result)
+                            :lines (.getLines scenario-result)}))
          (matches [hd tags]
            (.apply tp tags))
          (getOrder [hd] 0)
@@ -141,11 +151,16 @@
   {:file file
    :line (:line (meta form))})
 
-(defmacro Before [tags & body]
-  `(add-hook-definition :before ~tags (fn [] ~@body) ~(hook-location *file* &form)))
-
-(defmacro After [tags & body]
-  `(add-hook-definition :after ~tags (fn [] ~@body) ~(hook-location *file* &form)))
+(defmacro Before
+  [tags# binding-form# & body#]
+  `(add-hook-definition :before ~tags#
+                        (fn ~binding-form# ~@body#)
+                        ~(hook-location *file* &form)))
+(defmacro After
+  [tags# binding-form# & body#]
+  `(add-hook-definition :after ~tags#
+                        (fn ~binding-form# ~@body#)
+                        ~(hook-location *file* &form)))
 
 (defn ^:private update-keys [f m]
   (reduce-kv #(assoc %1 (f %2) %3) {} m))
@@ -154,7 +169,7 @@
   (reduce-kv #(assoc %1 %2 (f %3)) {} m))
 
 (defn read-cuke-str
-  "Using the clojure reader is often a good way to interpret literal values
+   "Using the clojure reader is often a good way to interpret literal values
    in feature files. This function makes some cucumber-specific adjustments
    to basic reader behavior. This is particulary appropriate when reading a
    table, for example: reading | \"1\" | 1 | we should intepret 1 as an int
