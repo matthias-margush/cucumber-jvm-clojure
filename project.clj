@@ -1,4 +1,4 @@
-(defproject org.clojars.matthiasmargush/cucumber-clojure "2.0.5-SNAPSHOT"
+(defproject org.clojars.matthiasmargush/cucumber-clojure "2.0.6-SNAPSHOT"
   :description "Cucumber implementation for clojure"
   :url "https://github.com/cucumber/cucumber-jvm-clojure"
   :license {:name "Eclipse Public License"
@@ -14,7 +14,4 @@
                       "clojure/src/test/java"]
   :test-paths ["clojure/src/test/java"]
   :resource-paths ["clojure/src/test/resources"]
-  :junit ["clojure/src/test/java"]
-  #_:profiles #_{:dev {:source-paths ["clojure/src/test/java"]
-                   :dependencies [[junit/junit "4.12"]
-                                  [io.cucumber/cucumber-junit "2.0.1"]]}})
+  :junit ["clojure/src/test/java"])
